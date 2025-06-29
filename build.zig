@@ -26,15 +26,15 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const udp_mod = b.dependency("udp", .{
+    const net_mod = b.dependency("net", .{
         .target = target,
         .optimize = optimize,
-    }).module("udp");
+    }).module("net");
 
-    exe_mod.addImport("udp", udp_mod);
+    exe_mod.addImport("net", net_mod);
 
     const exe_check = b.addExecutable(.{
-        .name = "udp_game_server_check",
+        .name = "dungeon_game_server_check",
         .root_module = exe_mod,
     });
 
@@ -44,7 +44,7 @@ pub fn build(b: *std.Build) void {
     // This creates another `std.Build.Step.Compile`, but this one builds an executable
     // rather than a static library.
     const exe = b.addExecutable(.{
-        .name = "udp_game_server",
+        .name = "dungeon_game_server",
         .root_module = exe_mod,
     });
 

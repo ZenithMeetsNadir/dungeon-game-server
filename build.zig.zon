@@ -66,9 +66,10 @@
         //    .lazy = false,
         //},
 
-        .udp = .{
-            .url = "https://github.com/ZenithMeetsNadir/zig-udp/archive/refs/tags/v0.1.1.tar.gz",
-            .hash = "udp-0.1.0-TVzd5ZBTAAB2V_hsitaOvy6nHA5SKxrjNsdAIfUF6ti9",
+        .net = .{
+            //.url = "https://github.com/ZenithMeetsNadir/zig-net/archive/refs/tags/v0.1.1.tar.gz",
+            //.hash = "udp-0.1.0-TVzd5ZBTAAB2V_hsitaOvy6nHA5SKxrjNsdAIfUF6ti9",
+            .path = "../net",
         },
     },
 

@@ -118,6 +118,7 @@ fn dispatchTcp(server: *TcpServer, connection: *TcpServer.Connection, data: []co
 
     var iter = dp.iteratorOver(decoded);
     _ = &iter;
-
-    // handle logic here
+    if (dp.valueOf(decoded, "die") != null) {
+        connection.awaits_disposal.store(true, .release);
+    }
 }

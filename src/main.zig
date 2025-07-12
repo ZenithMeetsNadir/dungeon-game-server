@@ -17,9 +17,7 @@ var dp: DataPacker = blk: {
 };
 
 var udp: UdpServer = undefined;
-var udp_cli: UdpClient = undefined;
 var tcp: TcpServer = undefined;
-var tcp_cli: TcpClient = undefined;
 
 var gpa = std.heap.DebugAllocator(.{}).init;
 const allocator: std.mem.Allocator = gpa.allocator();
@@ -34,17 +32,9 @@ pub fn main() !void {
     udp.dispatch_fn = dispatchUdp;
     try udp.listen();
 
-    udp_cli = try .connect("127.0.0.1", server_port);
-    udp_cli.dispatch_fn = dispatchUdpCli;
-    try udp_cli.listen();
-
     tcp = try .open("0.0.0.0", server_port, allocator);
     tcp.dispatch_fn = dispatchTcp;
     try tcp.listen();
-
-    tcp_cli = try .connect("127.0.0.1", server_port);
-    tcp_cli.dispatch_fn = dispatchTcpCli;
-    try tcp_cli.listen();
 
     _ = signal_h.signal(signal_h.SIGINT, onInterrupt);
 
@@ -55,8 +45,6 @@ pub fn main() !void {
             else => return err,
         };
         defer allocator.free(line);
-        try udp_cli.send(line);
-        try tcp_cli.send(line);
     }
 
     exit_flag.store(true, .release);
@@ -72,19 +60,17 @@ fn onInterrupt(sig_num: c_int) callconv(.c) void {
     while (!exit_flag.load(.acquire)) {}
 
     udp.close();
-    udp_cli.close();
     tcp.close();
-    tcp_cli.close();
 
     _ = gpa.deinit();
 
     exit_flag.store(false, .release);
 }
 
-fn dispatchUdp(self: *const UdpServer, sender_addr: std.net.Ip4Address, data: []const u8) anyerror!void {
-    _ = self;
+fn dispatchUdp(server: *const UdpServer, sender_addr: std.net.Ip4Address, data: []const u8) anyerror!void {
+    _ = server;
 
-    std.log.info("received message from {}:", .{sender_addr});
+    std.log.info("received message via udp from {}:", .{sender_addr});
     std.log.info("{s}", .{data});
 
     const decoded = try dp.whichevercrypt(data, allocator);
@@ -93,12 +79,12 @@ fn dispatchUdp(self: *const UdpServer, sender_addr: std.net.Ip4Address, data: []
     std.log.info("{s}", .{decoded});
 
     if (!dp.verify(decoded)) {
-        std.log.warn("invalid data received", .{});
+        std.log.warn("invalid data received via udp", .{});
         return;
     }
 
     var iter = dp.iteratorOver(decoded);
-    if (dp.valueOfContinue(&iter, "s") != null) {
+    if (dp.valueOf(decoded, "s") != null) {
         var msg = try dp.message(allocator);
         defer msg.deinit();
 
@@ -114,21 +100,24 @@ fn dispatchUdp(self: *const UdpServer, sender_addr: std.net.Ip4Address, data: []
     }
 }
 
-fn dispatchUdpCli(self: *const UdpClient, data: []const u8) anyerror!void {
-    _ = self;
-    _ = data;
-}
-
 fn dispatchTcp(server: *TcpServer, connection: *TcpServer.Connection, data: []const u8) anyerror!void {
     _ = server;
 
-    if (std.mem.startsWith(u8, data, "die"))
-        connection.awaits_disposal.store(true, .release);
+    std.log.info("received message via tcp from {}:", .{connection.client_ip4});
+    std.log.info("{s}", .{data});
 
-    std.log.info("{any}", .{data});
-}
+    const decoded = try dp.whichevercrypt(data, allocator);
+    defer allocator.free(decoded);
 
-fn dispatchTcpCli(self: *const TcpClient, data: []const u8) anyerror!void {
-    _ = self;
-    _ = data;
+    std.log.info("{s}", .{decoded});
+
+    if (!dp.verify(decoded)) {
+        std.log.warn("invalid data received via tcp", .{});
+        return;
+    }
+
+    var iter = dp.iteratorOver(decoded);
+    _ = &iter;
+
+    // handle logic here
 }
